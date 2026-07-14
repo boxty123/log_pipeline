@@ -164,7 +164,7 @@ curl -s -o /dev/null -w "%{http_code}\n" -X POST http://localhost:8000/api/v1/lo
 
 출력:
 
-<img width="600" height="667" alt="Image" src="https://github.com/user-attachments/assets/0590d17c-7466-4304-9b52-87357c231ce7" />
+<img width="600" alt="Image" src="https://github.com/user-attachments/assets/0590d17c-7466-4304-9b52-87357c231ce7" />
 
 
 ## 5. 프로젝트 구조
