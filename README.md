@@ -83,7 +83,7 @@ API 문서는 `http://localhost:8000/docs`에서 확인할 수 있습니다.
 
 ### 4-1. 가상의 게임 로그 전송
 
-<img width="600" alt="Image" src="https://github.com/user-attachments/assets/6bae08a3-641d-4439-8d03-9634d5acb160" />
+<img width="600" alt="Image" src="https://github.com/user-attachments/assets/88a85753-b41a-4de9-b54e-692bb481f0af" />
 
 
 ### 4-2. Redis Stream 도달 확인
@@ -95,9 +95,9 @@ docker exec log-redis redis-cli XRANGE logs:stream - + COUNT 5
 출력:
 
 ```text
-1784043313912-0
+1784045683657-0
 log_id
-b88524f3-1d18-4d1b-a8d2-dd9db6793932
+2dfc8c4f-3603-4bd1-9a5b-8cb81a9f24d8
 event_type
 stage_clear
 user_id
@@ -107,7 +107,7 @@ payload
 timestamp
 1783920026.15
 received_at
-1784043313.9014843
+1784045683.65675
 ```
 
 
@@ -124,13 +124,13 @@ docker exec log-mongo mongosh --quiet logs \
 count=1
 [
   {
-    _id: '1784043313912-0',
-    log_id: 'b88524f3-1d18-4d1b-a8d2-dd9db6793932',
+    _id: '1784045683657-0',
+    log_id: '2dfc8c4f-3603-4bd1-9a5b-8cb81a9f24d8',
     event_type: 'stage_clear',
     user_id: 'user_12345',
     payload: { stage: 1, score: 100 },
     timestamp: 1783920026.15,
-    received_at: 1784043313.9014843
+    received_at: 1784045683.65675
   }
 ]
 ```
@@ -142,7 +142,7 @@ count=1
 
 ```bash
 docker exec log-mongo mongosh --quiet logs --eval '
-  try { db.game_logs.insertOne({_id:"1784043313912-0"}); }
+  try { db.game_logs.insertOne({_id:"1784045683657-0"}); }
   catch (e) { print("rejected code=" + e.code); }'
 ```
 
@@ -164,7 +164,7 @@ curl -s -o /dev/null -w "%{http_code}\n" -X POST http://localhost:8000/api/v1/lo
 
 출력:
 
-<img width="1087" height="667" alt="Image" src="https://github.com/user-attachments/assets/0590d17c-7466-4304-9b52-87357c231ce7" />
+<img width="600" height="667" alt="Image" src="https://github.com/user-attachments/assets/0590d17c-7466-4304-9b52-87357c231ce7" />
 
 
 ## 5. 프로젝트 구조
