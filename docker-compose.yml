@@ -1,0 +1,96 @@
+services:
+  # ---------------------------------------------------------------------------
+  # 1) 로그 수집 API 
+  # ---------------------------------------------------------------------------
+  api:
+    build: ./log-api
+    container_name: log-api
+    ports:
+      - "8000:8000"                # 외부 → 내부 유일한 개방 포트
+    environment:
+      REDIS_HOST: redis            # compose 내부 DNS로 서비스명 통신
+      REDIS_PORT: "6379"
+      STREAM_KEY: logs:stream
+    depends_on:
+      redis:
+        condition: service_healthy # redis 준비 완료 후 기동
+    networks:
+      - log-net
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # 2) Redis — 로그 버퍼 (Streams)
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: log-redis
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 512mb
+      --maxmemory-policy noeviction
+    volumes:
+      - redis-data:/data           # 네임드 볼륨 -> 컨테이너 재시작에도 버퍼 유지
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - log-net
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # 3) Consumer Worker — 스트림에서 읽어 MongoDB에 배치 적재
+  # ---------------------------------------------------------------------------
+  consumer:
+    build: ./consumer
+    environment:
+      REDIS_HOST: redis
+      STREAM_KEY: logs:stream
+      GROUP_NAME: log-workers
+      MONGO_URI: mongodb://mongo:27017
+      MONGO_DB: logs
+      MONGO_COLLECTION: game_logs
+      BATCH_SIZE: "100"
+    depends_on:
+      redis:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+    networks:
+      - log-net
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # 4) MongoDB — 최종 로그 저장소. 
+  # ---------------------------------------------------------------------------
+  mongo:
+    image: mongo:7
+    container_name: log-mongo
+    volumes:
+      - mongo-data:/data/db        # 네임드 볼륨 -> 컨테이너 재시작에도 데이터 유지
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - log-net
+    restart: unless-stopped
+
+# -----------------------------------------------------------------------------
+# 내부 전용 가상 네트워크: 서비스명으로 컨테이너 간 통신
+# -----------------------------------------------------------------------------
+networks:
+  log-net:
+    driver: bridge
+
+# -----------------------------------------------------------------------------
+# 네임드 볼륨: 컨테이너 삭제/재시작 시에도 데이터 유지
+# -----------------------------------------------------------------------------
+volumes:
+  redis-data:
+  mongo-data:
