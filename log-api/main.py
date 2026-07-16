@@ -22,7 +22,7 @@ from fastapi import FastAPI, HTTPException, status
 from pydantic import BaseModel, Field
 
 # ---------------------------------------------------------------------------
-# 설정 (환경변수 주입 — docker-compose에서 오버라이드)
+# 환경변수
 # ---------------------------------------------------------------------------
 REDIS_HOST = os.getenv("REDIS_HOST", "redis")
 REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
