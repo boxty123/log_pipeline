@@ -1,6 +1,6 @@
 # Game Log Ingestion Pipeline
 
-대량의 글로벌 게임 트래픽을 가정한 로그 수집 파이프라인입니다. FastAPI 수집 서버가 `POST /api/v1/logs`로 JSON 로그를 받아 Redis Streams 버퍼에 넣고, Consumer Worker가 배치 처리를 통해 MongoDB에 적재합니다.
+대량의 트래픽을 가정한 로그 수집 파이프라인입니다. FastAPI 수집 서버가 `POST /api/v1/logs`로 JSON 로그를 받아 Redis Streams 버퍼에 넣고, Consumer Worker가 배치 처리를 통해 MongoDB에 적재합니다.
 
 - 요청 흐름:  client → api(:8000) → redis stream → consumer → mongodb
 - 포트 개방:  api의 8000 하나만 호스트에 노출. redis/mongo는 `log-net` 내부 전용.
@@ -32,24 +32,6 @@ Redis의 일반 List(`LPUSH`/`BRPOP`)는 워커가 메시지를 꺼낸 직후 �
 
 게임 로그는 이벤트 타입마다 payload 스키마가 모두 다릅니다. 스키마리스 문서 저장에는 NoSQL 계열 DB가 적합하다고 판단했습니다. 또한 `.log` 파일 저장은 이후 조회가 어렵다고 판단했습니다.
 
-### 로그 스키마 — 공통 필드 + 자유 payload
-
-이벤트마다 데이터가 제각각인 게임 로그 특성을 고려해, **공통 필드와 이벤트별 데이터를 분리**하는 방식으로 정의했습니다.
-
-요청 본문 (`POST /api/v1/logs`):
-
-```json
-{
-  "event_type": "stage_clear",              // 필수 — 로그 종류
-  "user_id": "user_12345",                  // 필수 — 행위 주체
-  "payload": { "stage": 1, "score": 100 },  // 자유 형식 — 이벤트별 데이터
-  "timestamp": 1783920026.15                // 선택 — 이벤트 발생 시각
-}
-```
-
-- **공통 필드 + 자유 payload** — 모든 로그가 공유하는 건 `user_id`와 `event_type`뿐입니다. 이 둘만 필수로 검증하고 나머지는 `payload`(임의 JSON)로 열어, 새 이벤트 타입이 생겨도 API 수정이 필요없습니다.
-- **`timestamp`** — 클라이언트가 발생 시각을 주면 쓰고, 없으면 서버 수신 시각으로 채웁니다.
-- **서버가 추가하는 메타** — 수집 시 `log_id`(UUID)·`received_at`을 추가하고, Redis가 발급한 `stream_id`를 MongoDB `_id`로 사용합니다.
 
 ### 유실 방지
 
@@ -99,7 +81,7 @@ docker compose down -v    # 볼륨까지 삭제
 ## 4. 검증 결과
 
 
-### 4-1. 가상의 게임 로그 전송
+### 4-1. 가상의 로그 전송
 
 <img width="600" alt="Image" src="https://github.com/user-attachments/assets/88a85753-b41a-4de9-b54e-692bb481f0af" />
 
